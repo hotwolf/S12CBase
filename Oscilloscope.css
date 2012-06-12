@@ -68,18 +68,17 @@ body {
 }
 
 #sidebar .links {
-	margin: 12px 0 0;
+	margin: 30px 0 0;
 }
 
 
 #sidebar .links h1 {
-	font-size: 12pt;
-	margin: 2px 0 4px 2px;
+	font-size: 14pt;
 }
 
 #sidebar .links .link {
 	font-size: 10pt;
-	margin: 4px 0 0 4px;
+	margin: 8px 0 0 8px;
 }
 
 #sidebar .links .link h1{
@@ -134,6 +133,36 @@ body {
 	font-size: 12pt;
 	margin: 0;
 }
+
+
+#main #content p{
+	padding-left:  10px;
+	padding-right: 10px;
+	text-align: justify;
+}
+
+#main #content ul{
+	text-align: justify;
+}
+
+#main #content dl{
+	text-align: justify;
+}
+
+#main #content listing{
+	text-align: left;
+}
+
+#main #content a{
+	color: #c1fff4;
+	text-shadow: #fff 0 0 100px;
+}
+
+#main #content a:hover {
+	color: #fff;
+	text-shadow: #fff 0 0 200px;
+}
+
 
 #main #content .video{
 	margin: 12px 0;
