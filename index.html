@@ -5,5 +5,25 @@ title: Home
 
 <p><strong>S12CBase</strong> is a collection of low level drivers for <a href="http://www.freescale.com">Freescale's</a> HCS12 microcontroller family, written for the <a href="http://hotwolf.github.com/HSW12">HSW12 assembler</a>.
 This framework has initially been written for the MC9S12C128 and especially for the original <a href="http://hotwolf.github.com/OpenBDC">OpenBDC Hardware</a>. New realeses will also support the <a href="http://hotwolf.github.com/S12G-Micro-EVB">S12G-Micro-EVB</a> and the <a href="http://hotwolf.github.com/Mini-BDM-Pod">Mini-BDM-Pod</a>/<a href="http://www.freescale.com/webapp/sps/site/prod_summary.jsp?code=S08_S12_X_FLASHPGMR">LFBDMPGMR</a>.
-
+The following features are implemented:
+<ul>
+<li>
+SCI driver (incl. RTS/CTS and XON/XOFF flow control, permanent baud rate detection)
+</li>
+<li>
+String and numeric output routines
+</li>
+<li>
+LED signal driver (multiple LEDs or seral pattern on single LED)
+</li>
+<li>
+Stack monitoring
+</li>
+<li>
+Error handling (incl. reset/restart)
+</li>
+<li>
+Watchdog handling
+</ul>
+</p>
 {% include LatestPosts.html %}
