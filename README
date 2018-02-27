@@ -6,17 +6,23 @@ This library has initially been written for the OpenBDC project
 (https://github.com/hotwolf/OpenBDC) using a MC9S12C128 MCU. The following 
 hardware ports have been added since:
 
-	   - Mini-BDM-Pod      (https://github.com/hotwolf/Mini-BDM-Pod)
-	   - LFBDMPGMR         (S08/S12 programmer by Freescale)
-           - S12G-Micro-EVB    (https://github.com/hotwolf/S12G-Micro-EVB)
-	   - S12DP256-Mini-EVB (plain MC9HCS12DP256 evaluation board)
            - AriCalculator     (https://github.com/hotwolf/AriCalculator)
-           - SIMCH12           (free HC12 simulator)
+	   - BEPM              (https://github.com/Hocus-Pocus/BEPM)
+	   - FreeEMS	       (http://freeems.org)
+	   - MagniCube         (https://github.com/hotwolf/MagniCube)
+	   - Mini-BDM-Pod      (https://github.com/hotwolf/Mini-BDM-Pod)
+	     & LFBDMPGMR       (S08/S12 programmer by Freescale)
+           - OpenBDC           (https://github.com/hotwolf/OpenBDC)
+	   - S12DP256-Mini-EVB (plain MC9HCS12DP256 evaluation board)
+	   - S12G-Micro-EVB    (https://github.com/hotwolf/S12G-Micro-EVB)
+           - SIMCH12           (http://www.hcs12text.com/freesim.html)
 
 Directories:
 ============
 |
-+-Demos				;demos and tests for all ports 
++-Executable			;binaries (demos and bootloaders) 
+| +-AriCalculator    		;AriCalculator	 
+| +-BEPM   			;BEPM engine controller	 
 | +-Mini-BDM-Pod     		;Mini-BDM-Pod and LFBDMPGMR	 
 | +-OpenBDC	     		;original OpenBDC BDM pod	 
 | +-S12DG256-Mini-EVB   	;MC9HCS12DP256 EVB
@@ -25,6 +31,10 @@ Directories:
 |				
 +-Source			;source code for all ports
 | +-All                 	;shared source files for all ports
+| +-AriCalculator    		;AriCalculator	 
+| +-BEPM    		        ;Basic Electronic Powertrain Management
+| +-FreeEMS    		        ;Open Source Engine Management System
+| +-MagniCube    		;4x4x4 LED cube
 | +-Mini-BDM-Pod        	;Mini-BDM-Pod and LFBDMPGMR	 
 | +-OpenBDC			;original OpenBDC BDM pod	 
 | +-S12DG256-Mini-EVB   	;MC9HCS12DP256 EVB

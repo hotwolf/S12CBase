@@ -38,29 +38,47 @@
 FLASH_COMPILE		EQU	1 		;default target is NVM
 #endif	
 #endif
+
+;MCU (S12G32, S12G64, S12G128, or S12G240)
+;MMAP_S12G240		EQU	1		;default is S12G240
+
+;###############################################################################
+;# Module configuration                                                        #
+;###############################################################################
+;#VECTAB 
+VECTAB_DEBUG_OFF	EQU	1 		;debug IRQs
 	
-;# Memory map:
-MMAP_S12G240		EQU	1 		;S12G240
+;#SCI
+;Event handlers
+#macro	SCI_BREAK_ACTION, 0
+			LED_SET	A, LED_SEQ_L0NG_PULSE
+#emac
+#macro	SCI_CANCEL_ACTION, 0
+			LED_SET	A, LED_SEQ_L0NG_PULSE
+#emac
+#macro	SCI_SUSPEND_ACTION, 0
+			LED_SET	A, LED_SEQ_L0NG_PULSE
+#emac
+#macro	SCI_ESCAPE_ACTION, 0
+			LED_SET	A, LED_SEQ_L0NG_PULSE
+#emac
 
-;#COP
-COP_DEBUG		EQU	1 		;disable COP
-
-;# Vector table
-VECTAB_DEBUG_ON		EQU	1 		;multiple dummy ISRs
-
-;# STRING
-STRING_ENABLE_FILL_NB	EQU	1 		;enable STRING_FILL_NB
-STRING_ENABLE_FILL_BL	EQU	1 		;enable STRING_FILL_BL
-STRING_ENABLE_PRINTABLE	EQU	1 		;enable STRING_PRINTABLE
+;#STRING							
+STRING_ENABLE_FILL_NB	EQU	1		;enable STRING_FILL_NB 
+STRING_ENABLE_FILL_BL	EQU	1		;enable STRING_FILL_BL 
 	
-;#ISTACK
-ISTACK_NO_WAI		EQU	1 		;don't use WAI instruction
+;#NUM							
+NUM_MAX_BASE_16		EQU	1 		;default is 16
+	
+;#DISP
+DISP_SEQ_INIT_START	EQU	DEMO_DISP_INIT_START;start of initialization stream
+DISP_SEQ_INIT_END	EQU	DEMO_DISP_INIT_END  ;end of initialization stream
 
 ;###############################################################################
 ;# Resource mapping                                                            #
 ;###############################################################################
-;                        FLASH_COMPILE:                                          RAM_COMPILE:	       	      
-;                        ==============                                          ============	       	      
+;                         FLASH_COMPILE:                                        RAM_COMPILE:	       	      
+;                         ==============                                        ============	       	      
 ;      MMAP_REG_START -> +----------+----------+ $0000       MMAP_REG_START -> +----------+----------+ $0000      
 ;             	         |   Register Space    |                    ($0000)    |   Register Space    |      	    
 ;        MMAP_REG_END -> +----------+----------+ $0400         MMAP_REG_END -> +----------+----------+ $0400	    
@@ -194,31 +212,6 @@ VARS_END_LIN		EQU	@
 ;###############################################################################
 ;# Macros                                                                      #
 ;###############################################################################
-;;Break handler
-;#macro	SCI_BREAK_ACTION, 0
-;			LED_BUSY_ON 
-;#emac
-;	
-;;Suspend handler
-;#macro	SCI_SUSPEND_ACTION, 0
-;			LED_BUSY_OFF
-;#emac
-
-;VBAT -> busy LED
-#macro	VMON_VBAT_LVACTION, 0
-			LED_SET	A, LED_SEQ_HEART_BEAT
-#emac
-#macro	VMON_VBAT_HVACTION, 0
-			LED_CLR	A, LED_SEQ_HEART_BEAT
-#emac
-
-;VUSB -> error LED
-#macro	VMON_VUSB_LVACTION, 0
-			LED_SET	B, LED_SEQ_HEART_BEAT
-#emac
-#macro	VMON_VUSB_HVACTION, 0
-			LED_CLR	B, LED_SEQ_HEART_BEAT
-#emac
 
 ;###############################################################################
 ;# Code                                                                        #
@@ -444,6 +437,11 @@ DEMO_KEY_HEADER		STRING_NL_NONTERM
 			FCS	"Key code: "
 	
 DEMO_BACKLIGHT_HEADER	FCS	" -> Backlight: "
+
+DEMO_DISP_INIT_START	EQU	*
+			DISP_SEQ_CONFIG 		;configure display
+			DISP_WELCOME_STREAM
+DEMO_DISP_INIT_END	EQU	*
 	
 DEMO_TABS_END		EQU	*
 DEMO_TABS_END_LIN	EQU	@
@@ -459,4 +457,5 @@ TABS_END_LIN		EQU	@
 ;# Includes                                                                    #
 ;###############################################################################
 #include ./base_AriCalculator.s	   									;I/O setup
+#include ./disp_welcome.s	   									;I/O setup
 

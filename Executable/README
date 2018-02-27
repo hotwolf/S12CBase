@@ -1,0 +1,10 @@
+This directory contains bootloaders and demos for S12CBase framework.
+
+Available demos and tests:
++-AriCalculator    		;AriCalculator	 
++-BEPM   			;BEPM engine controller	 
++-Mini-BDM-Pod     		;Mini-BDM-Pod and LFBDMPGMR	 
++-OpenBDC	     		;original OpenBDC BDM pod	 
++-S12DG256-Mini-EVB   		;MC9HCS12DP256 EVB
++-S12G-Micro-EVB   		;S12G-Micro-EVB and AriCalculator
++-SIMHC12	     		;free HC12 simulator          

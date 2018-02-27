@@ -33,8 +33,26 @@
 ;###############################################################################
 ;# Configuration                                                               #
 ;###############################################################################
-;#Core
-				CPU	S12
+;# Size of the bootloader code
+#ifndef BOOTLOADER_SIZE
+BOOTLOADER_SIZE		EQU	$1000 		;default is 4K
+#endif	
+
+;###############################################################################
+;# Timer channel allocation                                                    #
+;###############################################################################
+; IC0 - SCI (baud rate detection)			;SCI driver
+; OC1 - SCI (general purpose)				;SCI driver
+; OC2 - DELAY						;delay driver
+; OC3 - LED						;red/green LED driver 
+; OC4 - KEYS						;keypad driver
+; OC5 - BACKLIGHT 					;LCD backlight driver
+; OC6 - free
+; OC7 - free
+
+;###############################################################################
+;# Module configuration                                                        #
+;###############################################################################
 ;#CLOCK
 CLOCK_CPMU			EQU	1		;CPMU
 CLOCK_IRC			EQU	1		;use IRC
@@ -57,18 +75,13 @@ CLOCK_REFFRQ			EQU	$0		; 1 MHz reference clock frequency
 ;#SSTACK
 
 ;#ISTACK
+#ifdef RAM_COMPILE
+ISTACK_NO_WAI		EQU	1 		;don't enter wait mode when debugging
+#endif
 
 ;#NVM
 
 ;#TIM				
-; IC0 - SCI (baud rate detection)			;SCI driver
-; OC1 - SCI (general purpose)				;SCI driver
-; OC2 - DELAY						;delay driver
-; OC3 - LED						;red/green LED driver 
-; OC4 - KEYS						;keypad driver
-; OC5 - BACKLIGHT 					;LCD backlight driver
-; OC6 - free
-; OC7 - free
 BASE_TIOS_INIT			EQU	SCI_OC_TIOS_INIT|DELAY_TIOS_INIT|LED_TIOS_INIT|KEYS_TIOS_INIT|BACKLIGHT_TIOS_INIT
 BASE_TTOV_INIT			EQU	BACKLIGHT_TTOV_INIT	
 BASE_TCTL12_INIT		EQU	BACKLIGHT_TCTL12_INIT	
@@ -130,21 +143,40 @@ SCI_CTS_PIN			EQU	PM1		;PM1
 SCI_CTS_WEAK_DRIVE		EQU	1		;weak drive
 #endif
 #endif
-#macro SCI_BDSIG_START, 0
+#ifnmac SCI_BDSIG_START
+#macro 	SCI_BDSIG_START, 0
+				LED_SET	B, LED_SEQ_SLOW_BLINK	;start slow blink on red LED
 #emac
-#macro SCI_BDSIG_STOP, 0
-				LED_CLR	B, LED_SEQ_L0NG_PULSE	;stop single gap on red LED
+#endif
+#ifnmac SCI_BDSIG_STOP
+#macro 	SCI_BDSIG_STOP, 0
+				LED_CLR	B, LED_SEQ_SLOW_BLINK	;stop slow blink on red LED
 #emac
-#macro SCI_ERRSIG_START, 0
+#endif
+#ifnmac SCI_ERRSIG_START
+#macro 	SCI_ERRSIG_START, 0
 				LED_SET	B, LED_SEQ_FAST_BLINK	;start fast blink on red LED
 #emac
-#macro SCI_ERRSIG_STOP, 0
+#endif
+#ifnmac	SCI_ERRSIG_STOP
+#macro 	SCI_ERRSIG_STOP, 0
 				LED_CLR	B, LED_SEQ_FAST_BLINK	;stop fast blink on red LED
 #emac
-	
+#endif	
+
 ;#DISP							
 
 ;#VMON							
+#ifnmac VMON_VUSB_HVACTION
+#macro	VMON_VUSB_HVACTION, 0
+				SCI_ACTIVATE
+#emac
+#endif
+#ifnmac VMON_VUSB_LVACTION
+#macro	VMON_VUSB_LVACTION, 0
+				SCI_DEACTIVATE
+#emac
+#endif
 
 ;#RANDOM							
 
@@ -269,7 +301,7 @@ BASE_VARS_END_LIN		EQU	@
 ;-------------- 
 #ifnmac	SPLASH_SCREEN
 #macro	SPLASH_SCREEN, 0
-;				;Show welcome or error screen on DISP
+;				;Show we lcome or error screen on DISP
 ;				RESET_BR_ERR	SPLASH_SCREEN_ERROR    
 ;				BASE_DISP_WELCOME
 ;				JOB	DONE
