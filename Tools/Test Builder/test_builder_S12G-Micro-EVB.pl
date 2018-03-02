@@ -55,7 +55,7 @@ $arg_type          = "src";
 $srec_format       = $hsw12_asm::srec_def_format;
 $srec_data_length  = $hsw12_asm::srec_def_data_length;
 $srec_add_s5       = $hsw12_asm::srec_def_add_s5;
-$srec_word_entries = 1;
+$srec_alignment    = 0;
 $command_file_name = "";
 $symbols           = {};
 $code              = {};
@@ -175,6 +175,8 @@ if (open (FILEHANDLE, sprintf("+>%s", $list_file_name))) {
 #####################
 if ($code->{problems}) {
     printf STDERR "Problem summary: %s\r\n", $code->{problems};
+    $out_string = $code->print_error_summary();
+    print STDERR $out_string;
 } else {
     ###################################
     # give memory allocation overview #
@@ -210,15 +212,12 @@ if ($code->{problems}) {
 	printf FILEHANDLE "reset         //reset target\r\n";                     #reset the target MCU
 	printf FILEHANDLE "nobr          //remove breakpoints\r\n";               #remove all breakpoints
 
-	printf FILEHANDLE "mm 0013 0b    //configure large ram (800-8000)\r\n";   #configure large ram $0800-$8000
-	printf FILEHANDLE "mm 0016 f9    //set default RPAGE\r\n";                #set RPAGE 
-
 	printf FILEHANDLE "load          //load S-Rrecord\r\n";                   #load S-Record
 	$out_string = $code->print_pag_srec(uc($prog_name),
 					    $srec_format,
 					    $srec_data_length,
 					    $srec_add_s5,
-					    $srec_word_entries);
+					    $srec_alignment);
 
 	$out_string =~ s/\n/\r\n/g;
 	print FILEHANDLE $out_string;

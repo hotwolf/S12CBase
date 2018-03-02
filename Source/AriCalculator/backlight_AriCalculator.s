@@ -123,14 +123,14 @@ BACKLIGHT_SET			EQU	*
 				STD	(TC0+(2*BACKLIGHT_OC))	;set brightness
 				BCLR	OCPD, #(1<<BACKLIGHT_OC);enable port output
 					;Initialize timer
-			BSET	TIOS,  #(1<<BACKLIGHT_OC) 	;configure OC
-			BSET	TTOV,  #(1<<BACKLIGHT_OC) 	;toggle on overflow
-			;BCLR	TCTL1, #(1<<(2*(BACKLIGHT_OC-4)))
-			BSET	TCTL1, #(1<<(2*(BACKLIGHT_OC-4))+1)
-			;BCLR	TIE,   #(1<<BACKLIGHT_OC) 	;disable interrupts
-			;MOVW	#$0000, (TC0+(2*BACKLIGHT_OC))	;set brightness
-			;BSET	OCPD,  #(1<<BACKLIGHT_OC) 	;disable port output
-		MOVB	#(TEN|TSFRZ), TSCR1	;enable timer
+				BSET	TIOS,  #(1<<BACKLIGHT_OC) 	;configure OC
+				BSET	TTOV,  #(1<<BACKLIGHT_OC) 	;toggle on overflow
+				;BCLR	TCTL1, #(1<<(2*(BACKLIGHT_OC-4)))
+				BSET	TCTL1, #(1<<(2*(BACKLIGHT_OC-4))+1)
+				;BCLR	TIE,   #(1<<BACKLIGHT_OC) 	;disable interrupts
+				;MOVW	#$0000, (TC0+(2*BACKLIGHT_OC))	;set brightness
+				;BSET	OCPD,  #(1<<BACKLIGHT_OC) 	;disable port output
+				MOVB	#(TEN|TSFRZ), TSCR1	;enable timer
 				;Done (brightness in D) 
 BACKLIGHT_SET_1			SSTACK_PREPULL	2
 				RTS

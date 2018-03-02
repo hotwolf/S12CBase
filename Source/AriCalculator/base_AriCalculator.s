@@ -28,11 +28,27 @@
 ;#      - Initial release                                                      #
 ;#    May 17, 2017                                                             #
 ;#      - Clean up                                                             #
+;#    March 1, 2018                                                            #
+;#      - Make-over                                                            #
 ;###############################################################################
 
 ;###############################################################################
 ;# Configuration                                                               #
 ;###############################################################################
+;# Show welcome message
+#ifndef BASE_WELCOME_ON
+#ifndef BASE_WELCOME_OFF
+BASE_WELCOME_ON		EQU	1 		;show welcome message by default
+#endif	
+#endif	
+
+;# Show welcome message
+#ifndef BASE_ERROR_ON
+#ifndef BASE_ERROR_OFF
+BASE_ERROR_ON		EQU	1 		;show error message by default
+#endif	
+#endif	
+
 ;# Size of the bootloader code
 #ifndef BOOTLOADER_SIZE
 BOOTLOADER_SIZE		EQU	$1000 		;default is 4K
@@ -125,8 +141,7 @@ DELAY_OC			EQU	2		;OC2
 	
 ;#SCI							
 SCI_V5				EQU	1   		;V5
-SCI_BAUD_9600			EQU	1 		;fixed baud rate
-SCI_BAUD_DETECT_ON		EQU	1		;enable baud rate detection
+SCI_BAUD_AUTO			EQU	1 		;baud rate detection
 SCI_IC_TIM			EQU	TIM 		;ECT
 SCI_IC				EQU	0 		;IC0
 SCI_OC_TIM			EQU	TIM 		;ECT
@@ -280,45 +295,13 @@ BASE_VARS_END_LIN		EQU	@
 ;###############################################################################
 ;# Macros                                                                      #
 ;###############################################################################
-;#Error message
-;-------------- 
-#ifnmac	ERROR_MESSAGE
-#macro	ERROR_MESSAGE, 0
-;				;VMON_VUSB_BRLV	DONE 		;no terminal connected
-;				RESET_BR_NOERR	DONE		;no error detected 
-;				SCI_CHECK_BAUD_BL		;determine baud rate first
-;				LDX	#ERROR_HEADER		;print error header
-;				STRING_PRINT_BL
-;				TFR	Y, X			;print error message
-;				STRING_PRINT_BL
-;				LDX	#ERROR_TRAILER		;print error TRAILER
-;				STRING_PRINT_BL
-;DONE				EQU	*
-#emac
-#endif
-
-;#Error message
-;-------------- 
-#ifnmac	SPLASH_SCREEN
-#macro	SPLASH_SCREEN, 0
-;				;Show we lcome or error screen on DISP
-;				RESET_BR_ERR	SPLASH_SCREEN_ERROR    
-;				BASE_DISP_WELCOME
-;				JOB	DONE
-;SPLASH_SCREEN_ERROR		BASE_DISP_ERROR  			
-;SPLASH_SCREEN_DONE		EQU	*
-;				;Wait for PLL lock
-;DONE				EQU	*
-#emac
-#endif
-	
 ;#Initialization
 ;--------------- 
 #macro	BASE_INIT, 0
 				;Urgent initialization
 				GPIO_INIT	;urgent!
-				COP_INIT	;urgent!
 				CLOCK_INIT	;urgent!	
+				COP_INIT	;urgent!
 				;Initialization w/o PLL lock
 				RESET_INIT
 				MMAP_INIT
@@ -334,77 +317,85 @@ BASE_VARS_END_LIN		EQU	@
 				STRING_INIT
 				NUM_INIT
 				DISP_INIT
-				SPLASH_SCREEN
+				;Initialization w/ PLL lock
         			CLOCK_WAIT_FOR_PLL
 				VMON_WAIT_FOR_1ST_RESULTS
-				VMON_VUSB_BRLV	DONE
-				;ERROR_MESSAGE
+#ifdef BASE_ERROR_ON
+				;Show error message
+				RESET_BR_NOERR	NO_ERROR
+				BASE_SHOW_ERROR
+				BASE_WAIT_INPUT_BL
+				JOB	DONE
+NO_ERROR			EQU	*	
+#endif
+#ifdef BASE_WELCOME_ON
+				;Show welcome message
+				BASE_SHOW_WELCOME
+				BASE_WAIT_INPUT_BL
+#endif
+				;Done
 DONE				EQU	*	
 #emac
 
-;;#Enable SCI error signaling
-;;--------------------------- 
-;#ifnmac SCI_ERRSIG_START
-;#macro	SCI_ERRSIG_START, 0
-;				;Signal error over LED
-;				LED_COMERR_ON	LED_NOP, LED_NOP
-;#emac
-;#endif	
-;#ifnmac SCI_ERRSIG_END
-;#macro	SCI_ERRSIG_END, 0
-;				;Stop signaling over LED
-;				LED_COMERR_OFF
-;#emac
-;#endif	
-;	
-;;#Enable SCI whenever USB is connected, disable otherwise
-;;-------------------------------------------------------- 
-;#ifnmac VMON_VUSB_LVACTION
-;#macro	VMON_VUSB_LVACTION, 0
-;				SCI_DISABLE
-;#emac
-;#endif	
-;#ifnmac VMON_VUSB_HVACTION
-;#macro	VMON_VUSB_HVACTION, 0
-;				SCI_ENABLE
-;#emac
-;#endif	
-;
-;;#Welcome messages
-;;----------------- 
-;;#SCI
-;#macro	BASE_SCI_WELCOME, 0
-;				LDX	#BASE_SCI_WELCOME_MSG	;print welcome message
-;				STRING_PRINT_BL
-;#emac
-;
-;;#DISP
-;#macro	BASE_DISP_WELCOME, 0
-;				LDX	#BASE_DISP_WELCOME_SCR
-;				LDY	#BASE_DISP_WELCOME_SIZE
-;				DISP_STREAM_BL
-;#emac
-;	
-;;#Error messages
-;;--------------- 
-;; args:   Y: error message 
-;;#SCI
-;#macro	BASE_SCI_ERROR, 0
-;				LDX	#BASE_SCI_ERROR_HEADER	;print error header
-;				STRING_PRINT_BL
-;				TFR	Y, X			;print error message
-;				STRING_PRINT_BL
-;				LDX	#BASE_SCI_ERROR_TRAILER	;print error TRAILER
-;				STRING_PRINT_BL
-;#emac
-;
-;;#DISP
-;#macro	BASE_DISP_ERROR, 0
-;				LDX	#BASE_DISP_ERROR_SCR
-;				LDY	#BASE_DISP_ERROR_SIZE
-;				DISP_STREAM_BL
-;#emac
+;#Check for any user input - non-blocking
+; args:   none
+; result: C-flag: set if successful
+; SSTACK: 6 bytes
+;         X, Y and D are preserved
+#macro	BASE_CHECK_INPUT_NB, 0
+				SSTACK_JOBSR	BASE_CHECK_INPUT_NB, 6
+#emac
 
+;#Wait for any user input - blocking
+; args:   none
+; result: C-flag: set if successful
+; SSTACK: 8 bytes
+;         X, Y and D are preserved
+#macro	BASE_WAIT_INPUT_BL, 0
+				SSTACK_JOBSR	BASE_WAIT_INPUT_BL, 8
+#emac
+
+;#Turn a non-blocking subroutine into a blocking subroutine	
+; args:   1: non-blocking function
+;         2: subroutine stack usage of non-blocking function 
+; SSTACK: stack usage of non-blocking function + 2
+;         rgister output of the non-blocking function is preserved 
+#macro	BASE_MAKE_BL, 2
+				SCI_MAKE_BL	\1, \2
+#emac
+
+;#Show welcome message
+;--------------------- 
+#ifnmac	BASE_SHOW_WELCOME
+#macro	BASE_SHOW_WELCOME, 0
+				;Print welcome message 
+				LDX	#BASE_WELCOME_MSG	;print welcome message
+				STRING_PRINT_BL
+				;Show welcome screen 
+				LDX	#BASE_DISP_WELCOME_START
+				LDD	#BASE_DISP_WELCOME_END
+				DISP_STREAM_BL
+#emac
+#endif	
+				
+;#Show error message
+;------------------- 
+#ifnmac	BASE_SHOW_ERROR
+#macro	BASE_SHOW_ERROR, 0
+				;Print error message (error message pointer in Y)
+				LDX	#ERROR_HEADER		;print error header
+				STRING_PRINT_BL
+				TFR	Y, X			;print error message
+				STRING_PRINT_BL
+				LDX	#ERROR_TRAILER		;print error TRAILER
+				STRING_PRINT_BL
+				;Show error screen 
+				LDX	#BASE_DISP_ERROR_START
+				LDD	#BASE_DISP_ERROR_END
+				DISP_STREAM_BL
+#emac
+#endif	
+	
 ;###############################################################################
 ;# Code                                                                        #
 ;###############################################################################
@@ -415,6 +406,29 @@ DONE				EQU	*
 BASE_CODE_START_LIN		EQU	@
 #endif				
 
+;#Check for any user input - non-blocking
+; args:   none
+; result: C-flag: set if successful
+; SSTACK: 6 bytes
+;         X, Y and D are preserved
+BASE_CHECK_INPUT_NB		EQU	*
+				;Check key pad 
+				KEYS_PEEK_NB 			;check key stroke buffer (SSTACK: 4 bytes)
+				BCS	BASE_CHECK_INPUT_NB_1 	;key strokes found
+				;Check key pad 
+				SCI_RX_PEEK_NB			;check SCI RX buffer (SSTACK: 4 bytes)
+				;Done (result in C-flag)				
+BASE_CHECK_INPUT_NB_1		SSTACK_CHECK_UF	2 		;check SSTACK
+				RTS
+
+;#Wait for any user input - blocking
+; args:   none
+; result: C-flag: set if successful
+; SSTACK: 8 bytes
+;         X, Y and D are preserved
+BASE_WAIT_INPUT_BL		EQU	*
+				BASE_MAKE_BL	KEYS_GET_NB, 6	
+	
 CLOCK_CODE_START		EQU	*
 CLOCK_CODE_START_LIN		EQU	@
 				ORG	CLOCK_CODE_END, CLOCK_CODE_END_LIN
@@ -588,26 +602,34 @@ NUM_TABS_START			EQU	*
 NUM_TABS_START_LIN		EQU	@
 				ORG	NUM_TABS_END, NUM_TABS_END_LIN
 
-;;#DISP screens			
-;;-------------			
-;;Welcome screen			
-;BASE_DISP_WELCOME_SCR		DISP_WELCOME_STREAM 			;display splash screen
-;BASE_DISP_WELCOME_SIZE		EQU	*-BASE_DISP_WELCOME_SCR
-;				
-;;Error Screen			
-;BASE_DISP_ERROR_SCR		DISP_ERROR_STREAM 			;display splash screen
-;BASE_DISP_ERROR_SIZE		EQU	*-BASE_DISP_ERROR_SCR
-;				
-;;#SCI messages			
-;;-------------			
-;;#Error message format
-;#ifndef	ERROR_HEADER
-;ERROR_HEADER			FCS	"FATAL ERROR! "
-;#endif
-;#ifndef	ERROR_TRAILER
-;ERROR_TRAILER			FCC	"!"
-;				STRING_NL_TERM
-;#endif
+;#DISP screens			
+;-------------			
+#ifdef BASE_WELCOME_ON
+;Welcome screen			
+BASE_DISP_WELCOME_START		DISP_WELCOME_STREAM 			;display splash screen
+BASE_DISP_WELCOME_END		EQU	*
+#endif	
+
+#ifdef BASE_ERROR_ON
+				;Error screen			
+BASE_DISP_ERROR_START		DISP_ERROR_STREAM 			;display splash screen
+BASE_DISP_ERROR_END		EQU	*
+#endif
+	
+;#SCI messages			
+;-------------			
+#ifndef	BASE_WELCOME_MSG
+BASE_WELCOME_MSG		FCC	"This is S12CBase for the AriCalculator!"
+				STRING_NL_TERM
+#endif
+				;#Error message format
+#ifndef	ERROR_HEADER
+ERROR_HEADER			FCS	"FATAL ERROR! "
+#endif
+#ifndef	ERROR_TRAILER
+ERROR_TRAILER			FCC	"!"
+				STRING_NL_TERM
+#endif
 		
 BASE_TABS_END			EQU	*	
 BASE_TABS_END_LIN		EQU	@
@@ -620,7 +642,6 @@ BASE_TABS_END_LIN		EQU	@
 #include ../All/cop.s				;COP handler
 #include ./gpio_AriCalculator.s			;I/O setup
 #include ./mmap_AriCalculator.s			;Memory map
-#include ./vectab_AriCalculator.s		;S12G vector table
 #include ../All/reset.s				;Reset driver
 #include ../All/sstack.s			;Subroutine stack
 #include ../All/istack.s			;Interrupt stack
@@ -632,8 +653,11 @@ BASE_TABS_END_LIN		EQU	@
 #include ../All/delay.s	  	 		;Delay driver
 #include ../All/sci.s				;SCI driver
 #include ./disp_AriCalculator.s			;Display driver
+#include ./disp_welcome.s			;Welcome message
+#include ./disp_error.s				;Error message
 #include ./vmon_AriCalculator.s			;Voltage monitor
 #include ../All/random.s	   		;Pseudo-random number generator
 #include ../All/string.s			;String printing routines	
 #include ../All/num.s	   			;Number printing routines
+#include ./vectab_AriCalculator.s		;S12G vector table
 #endif

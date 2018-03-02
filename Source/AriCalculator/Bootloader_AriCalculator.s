@@ -21,10 +21,9 @@
 ;#    This is the bootloader for the AriCalculator firmware. It allows         #
 ;#    firmware updates without additional hardware.                            #
 ;#                                                                             #
-;#                                                                             #
 ;###############################################################################
 ;# Version History:                                                            #
-;#    July 7, 2017                                                             #
+;#    February 24 7, 2018                                                      #
 ;#      - Initial release                                                      #
 ;###############################################################################
 
@@ -86,7 +85,6 @@ ISTACK_NO_WAI		EQU	1 		;don't enter wait mode when debugging
 ;#SCI							
 SCI_V5			EQU	1   		;V5
 SCI_BAUD_9600		EQU	1 		;fixed baud rate
-SCI_BAUD_DETECT_OFF	EQU	1		;no baud rate detection
 SCI_OC_TIM		EQU	TIM 		;ECT
 SCI_OC			EQU	0 		;OC0
 SCI_RTSCTS		EQU	1		;RTS/CTS flow control
@@ -375,7 +373,7 @@ BOOTLOADER_SHOW_READY	EQU	*
 			;DISP_STREAM_FROM_TO_BL	IMG_SEQ_READY_START, IMG_SEQ_READY_END
 
 			;Wait for transmission 
-			SCI_RX_READY_BL
+			SCI_RX_PEEK_BL
 
 			;Indicate ongoing firmware transmission
 BOOTLOADER_SHOW_BUSY	EQU	*

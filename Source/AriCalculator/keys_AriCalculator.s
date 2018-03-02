@@ -94,8 +94,8 @@ KEYS_ROW_MSB		EQU	5 		;default is PP5
 KEYS_ROW_LSB		EQU	0 		;default is PP0
 #endif
 
-;Debounce delay
-;--------------
+;Delays
+;------
 ;Output compare channel  
 #ifndef	KEYS_TIM
 KEYS_TIM		EQU	TIOS 		;default is the TIM instance associated with TIOS
@@ -107,6 +107,11 @@ KEYS_OC			EQU	4 		;default is OC4
 ;Debounce delay (TIM cycles)
 #ifndef	KEYS_DEBOUNCE_DELAY
 KEYS_DEBOUNCE_DELAY	EQU	5		;default is 5*2.6214ms			
+#endif
+	
+;Long push delay (TIM cycles)
+#ifndef	KEYS_LONGPUSH_DELAY
+KEYS_LONGPUSH_DELAY	EQU	50		;default is 50*2.6214ms			
 #endif
 	
 ;Buffer
@@ -145,6 +150,9 @@ KEYS_TIOS_INIT		EQU	1<<KEYS_OC
 ;#Output compare register
 KEYS_OC_TC		EQU	KEYS_TIM+(TC0-TIOS)+(2*KEYS_OC)
 
+;#Long push marker
+KEYS_LONGPUSH_MARKER	EQU	$80
+	
 ;###############################################################################
 ;# Variables                                                                   #
 ;###############################################################################
@@ -223,14 +231,40 @@ KEYS_VARS_END_LIN	EQU	@
 ;         X, Y, and B are preserved 
 #ifdef	KEYS_BLOCKING_ON
 #macro	KEYS_GET_BL, 0
-			SSTACK_JOBSR	KEYS_GET_BL, 6
+			SSTACK_JOBSR	KEYS_GET_BL, 5
 #emac
 #else
 #macro	KEYS_GET_BL, 0
-			KEYS_CALL_BL 	KEYS_GET_NB, 4
+			KEYS_CALL_BL 	KEYS_GET_NB, 5
 #emac
 #endif
 
+;#Check if a keystroke has been queued - non-blocking
+; args:   none
+; result: none
+;         C-flag: set if successful
+; SSTACK: 4 bytes
+;         X, Y, and B are preserved 
+#macro	KEYS_PEEK_NB, 0
+			SSTACK_JOBSR	KEYS_PEEK_NB, 4
+#emac
+
+;#Wait until a keystroke has been queued - blocking
+; args:   none
+; result: none
+;         C-flag: set if successful
+; SSTACK: 6 bytes
+;         X, Y, and D are preserved 
+#ifdef	KEYS_BLOCKING_ON
+#macro	KEYS_PEEK_BL, 0
+			SSTACK_JOBSR	KEYS_PEEK_BL, 4
+#emac
+#else
+#macro	KEYS_PEEK_BL, 0
+			KEYS_CALL_BL 	KEYS_PEEK_NB, 4
+#emac
+#endif
+	
 ;###############################################################################
 ;# Code                                                                        #
 ;###############################################################################
@@ -248,34 +282,27 @@ KEYS_VARS_END_LIN	EQU	@
 ;         X, Y, and B are preserved 
 KEYS_GET_NB		EQU	*
 			;Save registers
-			PSHB
-			PSHX
+			PSHB						;save B
+			PSHX   						;save X
 			;Check if there is data in the RX queue
-			LDD	KEYS_BUF_IN 				;A:B=in:out
-			SBA		   				;A=in-out
-			BEQ	KEYS_GET_NB_3 				;RX buffer is empty
-			;Pull entry from the buffer (out-index in B)
-			LDX	#KEYS_BUF
-			LDAA	B,X
-			INCB					        ;increment out pointer
-			ANDB	#KEYS_BUF_MASK
-			STAB	KEYS_BUF_OUT
-			;Recover from buffer overflow 
-			TST	KEYS_DELAY_COUNT
-			BNE	KEYS_GET_NB_1		    		;debounce delay active
-			MOVB	#KEYS_COL_MASK, KEYS_COL_IE 		;enable KWU interrupt
+			LDD	KEYS_BUF_IN 				;A:B=IN:OUT
+			SBA		   				;A=IN-OUT
+			CLC						;default result: failure
+			BEQ	KEYS_GET_NB_1 				;RX buffer is empty
+			;Pull entry from the buffer (OUT in B)
+			LDX	#KEYS_BUF 				;buffer -> X
+			LDAA	B,X 					;key code -> A
+			INCB					        ;increment OUT
+			ANDB	#KEYS_BUF_MASK 				;wrap OUT
+			STAB	KEYS_BUF_OUT 				;update OUT
+			;Signal success
+			SEC						;set C-flag
 			;Restore registers
-KEYS_GET_NB_1		SSTACK_PREPULL	5
-			SEC						;flag success
-KEYS_GET_NB_2		PULX
-			PULB
+KEYS_GET_NB_1		SSTACK_CHECK_UF	5 				;check SSTACK
+			PULX						;restore X
+			PULB						;restore B
 			;Done
 			RTS
-			STAB	KEYS_BUF_OUT
-			;RX buffer is empty
-KEYS_GET_NB_3		SSTACK_PREPULL	5	
-			CLC						;flag problem
-			JOB	KEYS_GET_NB_2
 
 ;#Receive one byte - blocking
 ; args:   none
@@ -284,9 +311,50 @@ KEYS_GET_NB_3		SSTACK_PREPULL	5
 ;         X, Y, and B are preserved 
 #ifdef	KEYS_BLOCKING_ON
 KEYS_GET_BL		EQU	*
-			KEYS_MAKE_BL	KEYS_GET_NB, 7
+			KEYS_MAKE_BL	KEYS_GET_NB, 5
 #endif
 
+;#Check if a keystroke has been queued - non-blocking
+; args:   none
+; result: none
+;         C-flag: set if successful
+; SSTACK: 4 bytes
+;         X, Y, and B are preserved 
+KEYS_PEEK_NB		EQU	*
+			;Save registers
+			PSHD   						;save D
+			;Check if there is data in the RX queue
+			LDD	KEYS_BUF_IN 				;A:B=IN:OUT
+			SBA		   				;A=IN-OUT
+			CLC						;default result: failure
+			BEQ	KEYS_PEEK_NB_1 				;RX buffer is empty
+			;Signal success
+			SEC						;set C-flag
+			;Restore registers
+KEYS_PEEK_NB_1		SSTACK_CHECK_UF	4 				;check SSTACK
+			PULD						;restore D
+			;Done
+			RTS
+
+;#Wait until a keystroke has been queued - blocking
+; args:   none
+; result: none
+;         C-flag: set if successful
+; SSTACK: 6 bytes
+;         X, Y, and D are preserved 
+#ifdef	KEYS_BLOCKING_ON
+KEYS_PEEK_BL		EQU	*
+			KEYS_MAKE_BL	KEYS_PEEK_NB, 4
+#endif
+
+
+
+	
+
+
+
+
+	
 ;#Keyboard wakeup ISR for column port (PAD)
 KEYS_ISR_KWU		EQU	*
 			;Clear interrupt flag

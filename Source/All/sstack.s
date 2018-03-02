@@ -3,7 +3,7 @@
 ;###############################################################################
 ;# S12CBase - SSTACK - Subroutine Stack Handler                                #
 ;###############################################################################
-;#    Copyright 2010-2016 Dirk Heisswolf                                       #
+;#    Copyright 2010-2018 Dirk Heisswolf                                       #
 ;#    This file is part of the S12CBase framework for NXP's S12C MCU family.   #
 ;#                                                                             #
 ;#    S12CBase is free software: you can redistribute it and/or modify         #
@@ -52,6 +52,8 @@
 ;#      - New generic implementation                                           #
 ;#    Septemember 28, 2016                                                     #
 ;#      - S12CBASE overhaul                                                    #
+;#    March 1, 2018                                            	               #
+;#      - added macro SSTACK_CHECH_UF (which preserves the CCR)                #
 ;###############################################################################
 ;# Required Modules:                                                           #
 ;#    RESET  - Reset handler                                                   #
@@ -227,7 +229,22 @@ UF			EQU	SSTACK_UF
 #endif
 #emac
 #endif
-		
+
+#ifnmac	SSTACK_CHECK_UF
+;#Check stack for underflow	
+; args:   1: expecteded stack content (bytes)
+; result: none
+; SSTACK: none
+;         X, Y, D, and CCR are preserved
+#macro	SSTACK_CHECK_UF, 1 //number of bytes to pull
+#ifdef	SSTACK_CHECK_ON
+			PSHC			;save CCR
+			SSTACK_PREPULL	(1+\1)	;check for underflow
+			PULC			;restore CCR
+#endif
+#emac	
+#endif
+	
 ;#Check stack and call subroutine	
 ; args:   required stack capacity (bytes)
 ; result: 1: subroutine

@@ -46,7 +46,7 @@ FLASH_COMPILE		EQU	1 		;default target is NVM
 ;# Module configuration                                                        #
 ;###############################################################################
 ;#VECTAB 
-VECTAB_DEBUG_OFF	EQU	1 		;debug IRQs
+VECTAB_DEBUG_ON		EQU	1 		;debug IRQs
 	
 ;#SCI
 ;Event handlers
@@ -69,10 +69,6 @@ STRING_ENABLE_FILL_BL	EQU	1		;enable STRING_FILL_BL
 	
 ;#NUM							
 NUM_MAX_BASE_16		EQU	1 		;default is 16
-	
-;#DISP
-DISP_SEQ_INIT_START	EQU	DEMO_DISP_INIT_START;start of initialization stream
-DISP_SEQ_INIT_END	EQU	DEMO_DISP_INIT_END  ;end of initialization stream
 
 ;###############################################################################
 ;# Resource mapping                                                            #
@@ -189,7 +185,7 @@ VECTAB_START_LIN	EQU	BOOTLOADER_START_LIN-VECTAB_SIZE
 ;###############################################################################
 ;# Variables                                                                   #
 ;###############################################################################
-			ORG 	VARS_START, DEMO_VARS_START_LIN
+			ORG 	VARS_START, VARS_START_LIN
 
 DEMO_VARS_START		EQU	*
 DEMO_VARS_START_LIN	EQU	@
@@ -225,7 +221,7 @@ DEMO_CODE_START_LIN	EQU	@
 START_OF_CODE		EQU	*				;Start of code
 			;Initialization
 			BASE_INIT
-
+	
 DEMO_KEY_STROKE_LOOP	EQU	*
 			;Wait for key stroke
 			KEYS_GET_BL 				;key code -> A
@@ -438,10 +434,10 @@ DEMO_KEY_HEADER		STRING_NL_NONTERM
 	
 DEMO_BACKLIGHT_HEADER	FCS	" -> Backlight: "
 
-DEMO_DISP_INIT_START	EQU	*
-			DISP_SEQ_CONFIG 		;configure display
-			DISP_WELCOME_STREAM
-DEMO_DISP_INIT_END	EQU	*
+;DEMO_DISP_INIT_START	EQU	*
+;			DISP_SEQ_CONFIG 		;configure display
+;			DISP_WELCOME_STREAM
+;DEMO_DISP_INIT_END	EQU	*
 	
 DEMO_TABS_END		EQU	*
 DEMO_TABS_END_LIN	EQU	@

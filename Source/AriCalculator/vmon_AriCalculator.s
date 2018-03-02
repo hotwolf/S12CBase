@@ -78,7 +78,7 @@ VMON_ATDCTL1_CONFIG	EQU	 %00010000 ;-> 8-bit resolution
 			; SMP_DIS----+|  | 
 			; ETRIGCH-----+--+ 
 
-VMON_ATDCTL2_CONFIG	EQU	 %00000001 ;-> fast flag clearing
+VMON_ATDCTL2_CONFIG	EQU	 %01000001 ;-> fast flag clearing
 			;          ^^^^^^^ ;-> enable compare interrupt
 			;    AFFC--+|||||| 
 			; ICLKSTP---+||||| 
@@ -213,48 +213,51 @@ VMON_CODE_START_LIN	EQU	@
 
 ;#ADC Compare ISR
 ;#---------------
-VMON_ISR		EQU	*
-			;Check VUSB
-			BRCLR	ATDSTAT2L,  #(1<<VMON_VUSB_CONVERSION), VMON_ISR_2 	;skip if state hasn't changed
-			BRSET	ATDCMPHTL, #(1<<VMON_VUSB_CONVERSION), VMON_ISR_1 	;HV condition detected
 			;LV condition detected
-			MOVW	#VMON_VUSB_UPPER_THRESHOLD, VMON_VUSB_ATDDR		;set upper threshold value
+VMON_ISR_USB_LV		MOVW	#VMON_VUSB_UPPER_THRESHOLD, VMON_VUSB_ATDDR		;set upper threshold value
 			BSET	ATDCMPHTL, #(1<<VMON_VUSB_CONVERSION)   		;VUSB must be higher than threshold
-			MOVB	#(1<<VMON_VUSB_CONVERSION), ATDSTAT2L 			;clear interrupt flag
+			;MOVB	#(1<<VMON_VUSB_CONVERSION), ATDSTAT2L 			;clear interrupt flag
 #ifmac	VMON_VUSB_LVACTION
 			VMON_VUSB_LVACTION
 #endif
-			JOB	VMON_ISR_2						;VUSB check done
+			JOB	VMON_ISR_1						;check VBAT
+			;Change of VUSB detected	 
+VMON_ISR_USB		BRCLR	ATDCMPHTL, #(1<<VMON_VUSB_CONVERSION), VMON_ISR_USB_LV 	;LV condition detected	
 			;HV condition detected
-VMON_ISR_1		MOVW	#VMON_VUSB_LOWER_THRESHOLD, VMON_VUSB_ATDDR		;set upper threshold value
+VMON_ISR_USB_HV		MOVW	#VMON_VUSB_LOWER_THRESHOLD, VMON_VUSB_ATDDR		;set upper threshold value
 			BCLR	ATDCMPHTL, #(1<<VMON_VUSB_CONVERSION)   		;VUSB must be lower (or same) than threshold
-			MOVB	#(1<<VMON_VUSB_CONVERSION), ATDSTAT2L 			;clear interrupt flag
+			;MOVB	#(1<<VMON_VUSB_CONVERSION), ATDSTAT2L 			;clear interrupt flag
 #ifmac	VMON_VUSB_HVACTION
 			VMON_VUSB_HVACTION
 #endif
+			JOB	VMON_ISR_1						;check VBAT
+VMON_MON_ISR			EQU	*
+			;Check VUSB
+			BRSET	ATDSTAT2L,  #(1<<VMON_VUSB_CONVERSION), VMON_ISR_USB 	;change of VUSB detected
 			;Check VBAT
-VMON_ISR_2		BRCLR	ATDSTAT2L,  #(1<<VMON_VBAT_CONVERSION), VMON_ISR_4 	;skip if state hasn't changed
-			BRSET	ATDCMPHTL, #(1<<VMON_VBAT_CONVERSION), VMON_ISR_3 	;HV condition detected
-			;LV condition detected
-			MOVW	#VMON_VBAT_UPPER_THRESHOLD, VMON_VBAT_ATDDR		;set upper threshold value
-			BSET	ATDCMPHTL, #(1<<VMON_VBAT_CONVERSION)   		;VBAT must be higher than threshold
-			MOVB	#(1<<VMON_VBAT_CONVERSION), ATDSTAT2L 			;clear interrupt flag
-#ifmac	VMON_VBAT_LVACTION
-			VMON_VBAT_LVACTION
-#endif
-			JOB	VMON_ISR_4						;VBAT check done
+VMON_ISR_1		BRSET	ATDSTAT2L,  #(1<<VMON_VBAT_CONVERSION), VMON_ISR_BAT 	;change of VBAT detected
+			;Restart conversion sequence 
+VMON_ISR_2		;MOVB	#VMON_ATDCTL5_CONFIG, ATDCTL5
+			;VBAT check done
+			ISTACK_RTI
 			;HV condition detected
-VMON_ISR_3		MOVW	#VMON_VBAT_LOWER_THRESHOLD, VMON_VBAT_ATDDR		;set upper threshold value
+VMON_ISR_BAT_HV		MOVW	#VMON_VBAT_LOWER_THRESHOLD, VMON_VBAT_ATDDR		;set upper threshold value
 			BCLR	ATDCMPHTL, #(1<<VMON_VBAT_CONVERSION)   		;VBAT must be lower (or same) than threshold
-			MOVB	#(1<<VMON_VBAT_CONVERSION), ATDSTAT2L 			;clear interrupt flag
+			;MOVB	#(1<<VMON_VBAT_CONVERSION), ATDSTAT2L 			;clear interrupt flag
 #ifmac	VMON_VBAT_HVACTION
 			VMON_VBAT_HVACTION
 #endif
-			;Restart conversion sequence 
-VMON_ISR_4		MOVB	#VMON_ATDCTL5_CONFIG, ATDCTL5
-
-			;VBAT check done
-			ISTACK_RTI
+			JOB	VMON_ISR_2 							;done
+			;Change of VBAT detected 
+VMON_ISR_BAT		BRSET	ATDCMPHTL, #(1<<VMON_VBAT_CONVERSION), VMON_ISR_BAT_HV 	;HV condition detected
+			;LV condition detected
+VMON_ISR_BAT_LV		MOVW	#VMON_VBAT_UPPER_THRESHOLD, VMON_VBAT_ATDDR		;set upper threshold value
+			BSET	ATDCMPHTL, #(1<<VMON_VBAT_CONVERSION)   		;VBAT must be higher than threshold
+			;MOVB	#(1<<VMON_VBAT_CONVERSION), ATDSTAT2L 			;clear interrupt flag
+#ifmac	VMON_VBAT_LVACTION
+			VMON_VBAT_LVACTION
+#endif
+			JOB	VMON_ISR_2						;VBAT check done
 
 VMON_CODE_END		EQU	*	
 VMON_CODE_END_LIN	EQU	@	
